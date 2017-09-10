@@ -1,0 +1,58 @@
+<html>
+
+<head>
+  <script src="sockjs-0.3.min.js"></script>
+  <script src="mqttws31.js"></script>
+  <script src="d3.min.js"></script>
+  <script src="msgpack.min.js"></script>
+  <script>
+    window.onload = function () {
+      var wsbroker = "127.0.0.1"  // mqtt websocket enabled broker
+      var wsport = 15675; // port for above
+      var client = new Paho.MQTT.Client(wsbroker, wsport, "/ws",
+        "myclientid_" + parseInt(Math.random() * 100, 10));
+
+      client.onConnectionLost = function (responseObject) {
+        console.log("CONNECTION LOST - " + responseObject.errorMessage);
+      };
+
+      var svg = d3.select("body").append("svg").attr("width", 800).attr("height", 600);
+      //var positionScale = d3.scale.linear().domain([0, 1]).range([100, 700])
+      //var radiusScale = d3.scale.linear().domain([0, 1]).range([0, 20])
+
+      client.onMessageArrived = function (message) {
+        var a = msgpack.decode(message.payloadBytes)
+        console.log("message", a)
+        svg.append("circle")
+          .attr("cx", a[0] * 700 + 50)
+          .attr("cy", a[1] * 500 + 50)
+          .attr("r", 20)
+          .attr("fill", "lightcoral")
+          .transition()
+          .delay(200)
+          .attr("r", a[2]*5 + 2)
+          .attr("fill-opacity", 0.7)
+      };
+
+      var options = {
+        timeout: 3,
+        onSuccess: function () {
+          console.log("CONNECTION SUCCESS");
+          client.subscribe('circles', { qos: 1 });
+        },
+        onFailure: function (message) {
+          console.log("CONNECTION FAILURE - " + message.errorMessage);
+        }
+      };
+
+      console.log("CONNECT TO " + wsbroker + ":" + wsport);
+      client.connect(options);
+    }
+  </script>
+</head>
+
+<body>
+  <pre id="chat"></pre>
+</body>
+
+</html>
